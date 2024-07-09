@@ -1,0 +1,213 @@
+Langkah langkah membuat POS
+
+1. Buat login controller : php artisan make:controller LoginController
+Buat function index:
+public function index()
+    {
+        return view('login');
+    }
+
+2. Masuk ke web.php
+Buat : Route::get('/', [\App\Http\Controllers\LoginController::class, 'index']);
+
+3. Buat file di views : login.blade.php
+Isinya dari template login.html. Ubah link linknya menjadi href="{{asset('assets/dist/css/adminlte.min.css')}}". Lakukan hal yg sama dengan yg lainnya.
+
+4. Masuk ke LoginController, buat function:
+public function actionLogin(Request $request)
+    {
+    }
+
+public function register(Request $request)
+    {
+    }
+
+5. Lalu di web.php ditambahkan route: 
+Route::get('register', [\App\Http\Controllers\LoginController::class,  'register']);
+
+6. Buka LoginController, tambahkan di function register:
+ public function register(Request $request)
+    {
+        return view('register');
+    }
+
+7. Save as file login.blade.php menjadi register.blade.php
+lalu tambahkan inputan nama di atas email.
+ <div class="input-group mb-3">
+          <input name="name" type="text" class="form-control" placeholder="Nama Lengkap">
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-envelope"></span>
+            </div>
+          </div>
+        </div>
+
+8. Pada form action, ubah menjadi {{route('actionRegister')}}
+
+9. Buka LoginController, tambahkan function:
+public function actionRegister(Request $request)
+    {
+        
+    }
+
+10. Tambahkan di web.php
+Route::post('actionRegister', [\App\Http\Controllers\LoginController::class, 'actionRegister']);
+
+11. Kembali ke LoginController, pada actionRegister tambahkan:
+$request->validate([
+            'name' => 'required',
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        User::create($request->all());
+        return redirect()->to('login')->with('success', 'Register Berhasil');
+
+12. Sweet alert, https://realrashid.github.io/sweet-alert/install
+Ketikan: composer require realrashid/sweet-alert 
+Lalu masukkan @include('sweetalert::alert') di dalam register.blade.php
+Kemudian, php artisan sweetalert:publish
+
+Masukkan : use RealRashid\SweetAlert\Facades\Alert; di LoginController paling atas
+Copy salah satu contoh alert yg ada.
+
+13. Masuk LoginController, isi actionLogin dengan:
+$request->validate([
+            'email' => 'required',
+            'password' => 'required',
+        ]);
+
+        $credentials = $request->only("email", "password");
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->to("home");
+        }
+        Alert::error('Upsss', 'Mohon periksa email dan password anda!');
+        return back();
+
+14. Buat controller baru bernama bernama HomeController,
+php artisan make:controller HomeController --resource
+Kemudian buat route nya : Route::resource('home', HomeController::class);
+
+15. Di dalam HomeController buat:
+return view('layouts.app');
+
+16. Kemudian buat folder baru di views dengan nama layouts, lalu buat file: app.blade.php
+
+17. Buat migration table: 
+php artisan make:migration create_categories_table
+Lalu migratate dan di dalam schema ada:
+ Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+
+18. Buat model : php artisan make:model Category
+Di dalam classnya, tambahkan : protected $fillable = ('name');
+
+19. Di dalam file app.blade.php, tambahkan di bagian Default box, card-body: @yield('content')
+Dan pada card-title : <h3 class="card-title">@yield('title')</h3>
+
+20. Buat folder di views->category dan buat file index.blade.php
+Lalu tambahkan : 
+@extends('layouts.app')
+@section('title', 'Data Kategori')
+@section('content')
+Ini Kategori
+@endsection
+
+21. Buka web.php dan tambahkan : Route::resource('category', CategoryController::class);
+
+22. Kembali ke sidebar.blade.php dan ganti pada baris ke-59, Layout Option jadi Master Data. Hapus span
+
+23. Ubah top navigation menjadi Kategori dan ubah linknya menjadi : <a href="{{route('category.index')}}" class="nav-link">
+
+24. Buka index.blade.php
+Buat .table-responsive
+table.table.table-bordered
+thead>tr>th*3
+
+dalam th isikan:
+		<th>No</th>
+                <th>Nama</th>
+                <th>Aksi</th>
+
+tbody>tr>td*3
+
+Di td terakhir, buat:
+<td></td>
+<td></td>
+<td>
+	<a href="" class="btn btn-xs btn-success">
+		<i class="fas fa-edit"></i>
+	</a>
+	<a href="" class="btn btn-xs btn-danger">
+                <i class="fas fa-trash"></i>
+	</a>
+</td>
+
+25. Buka CategoryController, tambahkan : 
+$data = Category::orderBy('id', 'desc')->get();
+return view('category.index', compact('data'));
+
+26. Kembali ke index.blade.php, lalu buat foreach di bawah tbody:
+@foreach ($data as $key -> $d), tutup foreachnya ada di bawah tr:
+
+@foreach ($data as $key => $d)
+<tr>
+	<td>{{$key++}}</td>
+        <td>{{$d->name}}</td>
+        <td>
+            <a href="{{route('category.edit', $d->id)}}" class="btn btn-xs btn-success">
+               <i class="fas fa-edit"></i>
+            </a>
+            <a href="" class="btn btn-xs btn-danger">
+               <i class="fas fa-trash"></i>
+            </a>
+         </td>
+</tr>
+@endforeach
+
+26. buat file create.blade.php dan buat form dengan method POST. Jangan lupa @csrf. 
+Form actionnya ditambah jadi: {{route('category.store')}}
+
+27. Buat file edit.blade.php yg di save as dari create
+Ganti form actionnya jadi : {{route('category.update', $edit->id)}}
+dan tambahkan @method('PUT').
+Pada input nama, ditambah : value="{{$edit->name}}"
+
+28. Pada CategoryController, tambahkan:
+public function edit(string $id)
+    {
+        $edit = Category::find($id);
+        return view('category.edit', compact('edit'));
+    }
+
+public function update(Request $request, string $id)
+    {
+        Category::where('id', $id)->update([
+            'name' => $request->name,
+        ]);
+
+        toast('Data berhasil diubah', 'success');
+        return redirect()->to('category');
+    }
+
+Lalu tambahkan destroy:
+public function destroy(string $id)
+    {
+        Category::where('id', $id)->delete();
+        toast('Data berhasil dihapus', 'success');
+        return redirect()->to('category');
+    }
+
+29. Buka index.blade.php, buat:
+<form action="{{route('category.destroy', $d->$id)}}" method="POST">
+@csrf
+<input type="hidden" name="_method" value="DELETE">
+<button class="btn btn-xs btn-danger" type="submit">
+	<i class="fas fa-trash"></i>
+</button>
+</form>
+
